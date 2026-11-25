@@ -611,6 +611,23 @@ async def admin_result(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+async def applications_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Показать список отправленных заявок."""
+    if not is_admin(update.effective_user, context):
+        await update.message.reply_text("Эта команда доступна только администратору.")
+        return
+    apps = load_applications()
+    if not apps:
+        await update.message.reply_text("Заявок пока нет.")
+        return
+    lines = ["📋 <b>Отправленные заявки</b>:", ""]
+    for app in apps:
+        name = app.get("telegram_name") or "?"
+        status = app.get("status") or "⏳ на рассмотрении"
+        lines.append(f"{app.get('id')}. {html.escape(str(name))} — {html.escape(str(status))}")
+    await update.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+
+
 async def hint_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Чтобы подать заявку в семью, отправьте /start")
 
@@ -661,6 +678,7 @@ def register_admin_handlers(app: Application, dual_mode: bool) -> None:
         app.add_handler(CommandHandler("start", admin_start))
     app.add_handler(CommandHandler("results", admin_results))
     app.add_handler(CommandHandler("result", admin_result))
+    app.add_handler(CommandHandler("applications", applications_cmd))
     app.add_handler(CommandHandler("admins", admin_list_cmd))
     app.add_handler(CallbackQueryHandler(on_approve, pattern=r"^appr:\d+$"))
     app.add_handler(CallbackQueryHandler(on_decline, pattern=r"^decl:\d+$"))
